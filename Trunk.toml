@@ -1,0 +1,23 @@
+# Trunk config for Leptos WASM client (politech_app lib)
+# Build: trunk build (output in dist/)
+# Dev:   trunk serve (watch + proxy API to backend)
+
+[build]
+target = "wasm32-unknown-unknown"
+# Build the lib with client feature so server deps are not pulled in
+cargo_features = ["client"]
+cargo_default_features = false
+# So that assets load correctly when the app is served at /app/
+public_url = "/app/"
+# Release build = much smaller WASM (dev is ~1.1MB, release with opt-level=z can be ~300–500KB)
+release = true
+
+[watch]
+watch = ["src/lib.rs", "index.html", "public/styles.css"]
+
+[serve]
+# When using `trunk serve`, proxy /api and /health to the Axum server
+# address = "127.0.0.1:3000"
+# proxy = "http://127.0.0.1:3000"
+
+# Output goes to dist/ by default. Serve that directory at /app in Axum.

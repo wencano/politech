@@ -1,0 +1,77 @@
+[package]
+name = "politech"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.93.1"
+
+# Smaller WASM when building with Trunk (release = true). Also shrinks server release binary.
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+
+[lib]
+name = "politech_app"
+path = "src/lib.rs"
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = ["server"]
+server = [
+    "aes-gcm",
+    "anyhow",
+    "axum",
+    "base64",
+    "chrono",
+    "dotenvy",
+    "hex",
+    "leptos/ssr",
+    "redis",
+    "sqlx",
+    "rand",
+    "tokio",
+    "tower-http",
+    "tracing",
+    "tracing-subscriber",
+    "uuid",
+]
+client = [
+    "console_error_panic_hook",
+    "gloo-net",
+    "gloo-utils",
+    "js-sys",
+    "leptos/csr",
+    "wasm-bindgen",
+    "web-sys",
+]
+
+[dependencies]
+# Shared
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Server-only (optional)
+aes-gcm = { version = "0.10", optional = true }
+anyhow = { version = "1.0", optional = true }
+axum = { version = "0.8", features = ["json", "macros"], optional = true }
+base64 = { version = "0.22", optional = true }
+chrono = { version = "0.4", features = ["serde"], optional = true }
+dotenvy = { version = "0.15", optional = true }
+hex = { version = "0.4", optional = true }
+leptos = { version = "0.8", default-features = false }
+redis = { version = "0.32", features = ["tokio-comp"], optional = true }
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "macros", "chrono", "uuid", "migrate"], optional = true }
+rand = { version = "0.8", optional = true }
+tokio = { version = "1.47", features = ["full"], optional = true }
+tower-http = { version = "0.6", features = ["cors", "fs", "trace"], optional = true }
+tracing = { version = "0.1", optional = true }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt"], optional = true }
+uuid = { version = "1.18", features = ["v4", "serde"], optional = true }
+
+# Client-only (optional)
+console_error_panic_hook = { version = "0.1", optional = true }
+gloo-net = { version = "0.6", optional = true }
+gloo-utils = { version = "0.2", optional = true }
+js-sys = { version = "0.3", optional = true }
+wasm-bindgen = { version = "0.2", optional = true }
+web-sys = { version = "0.3", optional = true }

@@ -1,0 +1,15 @@
+[Unit]
+Description=Politech topic map (Axum + WASM)
+After=network.target postgresql.service redis.service
+
+[Service]
+Type=simple
+WorkingDirectory=/var/www/topicmap.mcds.pro
+ExecStart=/var/www/topicmap.mcds.pro/politech
+Restart=on-failure
+RestartSec=5
+# Env from file (create /var/www/topicmap.mcds.pro/.env on VM)
+EnvironmentFile=-/var/www/topicmap.mcds.pro/.env
+
+[Install]
+WantedBy=multi-user.target

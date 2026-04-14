@@ -1,4 +1,4 @@
-# Politech Codebase Structure
+﻿# Politech Codebase Structure
 
 Reference for the current modular layout. The base app is working and already modular.
 

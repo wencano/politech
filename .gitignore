@@ -23,6 +23,9 @@ dist/
 .DS_Store
 Thumbs.db
 
+# Local / deployment scripts (repo is public)
+scripts/
+
 # Build / misc
 *.rs.bk
 *.pdb

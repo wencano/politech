@@ -1,5 +1,7 @@
 use std::env;
 
+use anyhow::{Context, ensure};
+
 #[derive(Clone, Debug)]
 pub struct AppConfig {
     pub host: String,
@@ -12,7 +14,7 @@ pub struct AppConfig {
 }
 
 impl AppConfig {
-    pub fn from_env() -> Self {
+    pub fn from_env() -> anyhow::Result<Self> {
         let host = env::var("APP_HOST").unwrap_or_else(|_| "0.0.0.0".to_string());
         let port = env::var("APP_PORT")
             .ok()
@@ -31,21 +33,21 @@ impl AppConfig {
             "0000000000000000000000000000000000000000000000000000000000000001".to_string()
         });
         let secret_key_bytes = hex::decode(&secret_key_hex)
-            .expect("APP_SECRET_KEY must be a 64-character hex string");
-        assert_eq!(
-            secret_key_bytes.len(),
-            32,
-            "APP_SECRET_KEY must decode to exactly 32 bytes (64 hex chars)"
+            .context("APP_SECRET_KEY must be a 64-character hex string")?;
+        ensure!(
+            secret_key_bytes.len() == 32,
+            "APP_SECRET_KEY must decode to exactly 32 bytes (64 hex chars), got {} bytes",
+            secret_key_bytes.len()
         );
         let mut secret_key = [0u8; 32];
         secret_key.copy_from_slice(&secret_key_bytes);
 
-        Self {
+        Ok(Self {
             host,
             port,
             database_url,
             redis_url,
             secret_key,
-        }
+        })
     }
 }

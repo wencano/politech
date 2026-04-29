@@ -54,7 +54,7 @@ async fn main() -> anyhow::Result<()> {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    let cfg = config::AppConfig::from_env();
+    let cfg = config::AppConfig::from_env()?;
     let db = PgPool::connect(&cfg.database_url)
         .await
         .context("failed to connect to postgres")?;

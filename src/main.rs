@@ -22,6 +22,9 @@ mod state;
 mod ui;
 
 #[cfg(feature = "server")]
+use std::time::Duration;
+
+#[cfg(feature = "server")]
 use std::net::SocketAddr;
 
 #[cfg(feature = "server")]
@@ -55,9 +58,9 @@ async fn main() -> anyhow::Result<()> {
         .init();
 
     let cfg = config::AppConfig::from_env()?;
-    let db = PgPool::connect(&cfg.database_url)
-        .await
-        .context("failed to connect to postgres")?;
+    tracing::info!(host = %cfg.host, port = cfg.port, "politech starting");
+
+    let db = connect_postgres(&cfg.database_url).await?;
 
     sqlx::migrate!("./migrations")
         .run(&db)
@@ -153,6 +156,28 @@ async fn main() -> anyhow::Result<()> {
     let listener = tokio::net::TcpListener::bind(addr).await?;
     axum::serve(listener, app).await?;
     Ok(())
+}
+
+#[cfg(feature = "server")]
+async fn connect_postgres(database_url: &str) -> anyhow::Result<PgPool> {
+    let mut last_err = None;
+    for attempt in 1..=10 {
+        match PgPool::connect(database_url).await {
+            Ok(pool) => {
+                tracing::info!(attempt, "connected to postgres");
+                return Ok(pool);
+            }
+            Err(err) => {
+                tracing::warn!(attempt, error = %err, "postgres connect failed, retrying");
+                last_err = Some(err);
+                tokio::time::sleep(Duration::from_secs(3)).await;
+            }
+        }
+    }
+
+    Err(last_err.unwrap()).context(
+        "failed to connect to postgres after retries — check DATABASE_URL user/password/host match the postgres volume (reset volume if credentials changed)",
+    )
 }
 
 #[cfg(feature = "server")]

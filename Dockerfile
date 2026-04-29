@@ -51,7 +51,7 @@ RUN cargo build --release --features server
 FROM ubuntu:24.04 AS runtime
 
 RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates \
+    && apt-get install -y --no-install-recommends ca-certificates curl \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --create-home --shell /usr/sbin/nologin politech
 
@@ -61,8 +61,10 @@ COPY --from=builder /app/target/release/politech /app/politech
 COPY --from=builder /app/dist /app/dist
 COPY --from=builder /app/public /app/public
 COPY migrations /app/migrations
+COPY docker-entrypoint.sh /app/docker-entrypoint.sh
 
-RUN chown -R politech:politech /app
+RUN chown -R politech:politech /app \
+    && chmod +x /app/docker-entrypoint.sh /app/politech
 
 ENV APP_HOST=0.0.0.0 \
     APP_PORT=3000
@@ -71,4 +73,4 @@ USER politech
 
 EXPOSE 3000
 
-CMD ["/app/politech"]
+CMD ["/app/docker-entrypoint.sh"]

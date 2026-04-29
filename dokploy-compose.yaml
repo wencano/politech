@@ -1,0 +1,101 @@
+# Politech — Dokploy Docker Compose (build + deploy)
+#
+# Two-step workflow (recommended in Dokploy Advanced → set Custom Command):
+#
+#   Step 1 — Build image:
+#     docker compose -f dokploy-compose.yaml --profile build build
+#
+#   Step 2 — Deploy stack (app + postgres + redis):
+#     docker compose -f dokploy-compose.yaml up -d
+#
+# One-shot (build then deploy):
+#     docker compose -f dokploy-compose.yaml --profile build build \
+#       && docker compose -f dokploy-compose.yaml up -d
+#
+# Dokploy UI:
+#   - Compose path: ./dokploy-compose.yaml
+#   - Set env vars from .env.dokploy (paste into Dokploy Environment)
+#   - Domains: configure in Dokploy Domains tab (port 3000 → politech service)
+#
+# Required env (set in Dokploy Environment):
+#   DATABASE_URL        — use host `postgres` (not localhost), e.g.
+#                         postgres://user:pass@postgres:5432/politech
+#   APP_SECRET_KEY      — 64-char hex (openssl rand -hex 32)
+#   POSTGRES_USER/PASSWORD/DB — must match credentials in DATABASE_URL
+
+name: politech
+
+services:
+  # ── Step 1: build only (profile: build) ──────────────────────────────────
+  politech-build:
+    profiles: [build]
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ${POLITECH_IMAGE:-politech:latest}
+    command: ["echo", "politech image built"]
+
+  # ── Step 2: runtime stack ────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-wencano}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-wencano}
+      POSTGRES_DB: ${POSTGRES_DB:-politech}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-wencano} -d ${POSTGRES_DB:-politech}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - politech-internal
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - politech-internal
+
+  politech:
+    image: ${POLITECH_IMAGE:-politech:latest}
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      APP_HOST: ${APP_HOST:-0.0.0.0}
+      APP_PORT: ${APP_PORT:-3000}
+      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL}
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379}
+      APP_SECRET_KEY: ${APP_SECRET_KEY:?set APP_SECRET_KEY}
+      RUST_LOG: ${RUST_LOG:-info}
+    expose:
+      - "${APP_PORT:-3000}"
+    networks:
+      - dokploy-network
+      - politech-internal
+
+volumes:
+  postgres_data:
+
+networks:
+  dokploy-network:
+    external: true
+  politech-internal:
+    driver: bridge

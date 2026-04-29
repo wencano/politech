@@ -7,7 +7,7 @@
   "terminals": [
     {
       "name": "dokploy compose",
-      "command": "docker compose --env-file .env.dokploy -f dokploy-compose.yaml --profile build build && docker compose --env-file .env.dokploy -f dokploy-compose.yaml up"
+      "command": "docker compose --env-file .env.dokploy -f dokploy-compose.yaml up --build"
     }
   ]
 }

@@ -1,17 +1,11 @@
 # Politech — Dokploy Docker Compose (build + deploy)
 #
-# Two-step workflow (recommended in Dokploy Advanced → set Custom Command):
+# Dokploy default (`up -d --build`) builds politech from ./Dockerfile in this repo.
+# politech uses pull_policy: build so Compose never tries to pull from Docker Hub.
 #
-#   Step 1 — Build image:
-#     docker compose -f dokploy-compose.yaml --profile build build
-#
-#   Step 2 — Deploy stack (app + postgres + redis):
-#     docker compose -f dokploy-compose.yaml up -d
-#
-# One-shot (build then deploy):
-#     docker compose -f dokploy-compose.yaml --profile build build \
-#       && docker compose -f dokploy-compose.yaml up -d
-#
+# Optional manual two-step:
+#   docker compose --env-file .env.dokploy -f dokploy-compose.yaml build politech
+#   docker compose --env-file .env.dokploy -f dokploy-compose.yaml up -d
 # Dokploy UI:
 #   - Compose path: ./dokploy-compose.yaml
 #   - Set env vars from .env.dokploy (paste into Dokploy Environment)
@@ -26,13 +20,14 @@
 name: politech
 
 services:
-  # ── Step 1: build only (profile: build) ──────────────────────────────────
+  # ── Step 1: build only (optional — same image as politech) ───────────────
   politech-build:
     profiles: [build]
     build:
       context: .
       dockerfile: Dockerfile
     image: ${POLITECH_IMAGE:-politech:latest}
+    pull_policy: build
     command: ["echo", "politech image built"]
 
   # ── Step 2: runtime stack ────────────────────────────────────────────────
@@ -71,7 +66,11 @@ services:
       - politech-internal
 
   politech:
+    build:
+      context: .
+      dockerfile: Dockerfile
     image: ${POLITECH_IMAGE:-politech:latest}
+    pull_policy: build
     restart: unless-stopped
     depends_on:
       postgres:
